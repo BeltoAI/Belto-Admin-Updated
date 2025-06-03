@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vercel Upload Test - Fixed</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; text-align: center; margin: 20px 0; }
+        .upload-area.dragover { border-color: #007bff; background-color: #f8f9fa; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Vercel-Compatible Upload Test</h1>
+    <p><strong>Status:</strong> ✅ File system operations removed, data URL storage implemented</p>
+    
+    <div class="info">
+        <h3>🎯 Testing the Fixed Upload API</h3>
+        <p>This test verifies that the upload API works without file system operations and generates data URLs for Vercel compatibility.</p>
+        <ul>
+            <li>✅ No file system writes (no EROFS errors)</li>
+            <li>✅ In-memory processing only</li>
+            <li>✅ Base64 data URL generation</li>
+            <li>✅ Content extraction preserved</li>
+        </ul>
+    </div>
+
+    <form id="uploadForm">
+        <div class="upload-area" id="uploadArea">
+            <p>📁 Select or drag files here</p>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt" multiple>
+        </div>
+        <button type="submit" id="uploadBtn">🚀 Upload and Test</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const resultDiv = document.getElementById('result');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            updateFileDisplay();
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', updateFileDisplay);
+
+        function updateFileDisplay() {
+            const files = fileInput.files;
+            if (files.length > 0) {
+                const fileNames = Array.from(files).map(f => f.name).join(', ');
+                uploadArea.innerHTML = `<p>📎 Selected: ${fileNames}</p>`;
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const files = fileInput.files;
+            if (!files || files.length === 0) {
+                showResult('Please select at least one file', 'error');
+                return;
+            }
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '⏳ Uploading...';
+            
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    console.log(`🚀 Testing upload for: ${file.name}`);
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    showResult(`⏳ Uploading ${file.name}...`, 'info');
+                    
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        console.log('✅ Upload successful:', result);
+                        showResult(`
+                            <h3>✅ Upload Successful: ${file.name}</h3>
+                            <p><strong>Message:</strong> ${result.message}</p>
+                            <p><strong>File Size:</strong> ${result.fileSize} bytes</p>
+                            <p><strong>Content Extracted:</strong> ${result.contentLength} characters</p>
+                            <p><strong>File Type:</strong> ${result.fileType}</p>
+                            <p><strong>Data URL:</strong> ${result.fileUrl ? 'Generated ✅' : 'Missing ❌'}</p>
+                            ${result.extractedContent ? `
+                                <details>
+                                    <summary>📄 Extracted Content Preview</summary>
+                                    <pre>${result.extractedContent.substring(0, 500)}${result.extractedContent.length > 500 ? '...' : ''}</pre>
+                                </details>
+                            ` : ''}
+                            <details>
+                                <summary>🔍 Full Response</summary>
+                                <pre>${JSON.stringify(result, null, 2)}</pre>
+                            </details>
+                        `, 'success');
+                    } else {
+                        console.error('❌ Upload failed:', result);
+                        showResult(`
+                            <h3>❌ Upload Failed: ${file.name}</h3>
+                            <p><strong>Error:</strong> ${result.error}</p>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <details>
+                                <summary>🔍 Error Details</summary>
+                                <pre>${JSON.stringify(result, null, 2)}</pre>
+                            </details>
+                        `, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('💥 Network error:', error);
+                showResult(`
+                    <h3>💥 Network Error</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check the browser console for more details.</p>
+                `, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '🚀 Upload and Test';
+            }
+        });
+
+        function showResult(message, type) {
+            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+
+        // Show initial status
+        showResult(`
+            <h3>🔧 Ready to Test Fixed Upload API</h3>
+            <p>Select files above to test the Vercel-compatible upload functionality.</p>
+            <p><strong>Expected:</strong> No EROFS errors, data URLs generated, content extracted.</p>
+        `, 'info');
+    </script>
+</body>
+</html>
