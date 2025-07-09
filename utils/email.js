@@ -1,78 +1,63 @@
+// utils/sendEmail.js
 import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+    },
 });
 
-export const sendVerificationEmail = async (email, token) => {
-  // Ensure we use the correct protocol (http for development)
-  const baseUrl = 'https://testdeploymentuserside.vercel.app';
-  const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
+// Add this new function for password reset emails
+export async function sendEmail(email, resetToken) {
+    console.log('SendEmail - Preparing to send password reset email');
+    
+    const resetLink = `https://belto.vercel.app/reset-password/${resetToken}`;
+    console.log('SendEmail - Generated reset link:', resetLink);
+    
+    const mailOptions = {
+        from: process.env.EMAIL_FROM,
+        to: email,
+        subject: 'Reset Your Password',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1>Password Reset</h1>
+                <p>You requested to reset your password for your Belto account.</p>
+                <p>Click the button below to set a new password:</p>
+                <div style="margin: 30px 0;">
+                    <a href="${resetLink}" style="background-color: #fbbf24; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reset Password</a>
+                </div>
+                <p>Or copy and paste this link in your browser:</p>
+                <p><a href="${resetLink}">${resetLink}</a></p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you did not request a password reset, please ignore this email.</p>
+            </div>
+        `
+    };
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Verify your email address',
-    html: `
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #333; text-align: center;">Welcome to Belto Admin Portal!</h2>
-        <p style="color: #666;">Please click the button below to verify your email address:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationUrl}" 
-             style="background-color: #FFB800; 
-                    color: black; 
-                    padding: 12px 30px; 
-                    text-decoration: none; 
-                    border-radius: 5px;
-                    font-weight: bold;">
-            Verify Email
-          </a>
-        </div>
-        <p style="color: #666; font-size: 12px;">If the button doesn't work, copy and paste this link in your browser:</p>
-        <p style="color: #666; font-size: 12px;">${verificationUrl}</p>
-      </div>
-    `
-  };
+    await transporter.sendMail(mailOptions);
+    console.log('SendEmail - Password reset email sent successfully');
+}
 
-  await transporter.sendMail(mailOptions);
-};
+export async function sendVerificationEmail(email, token) {
+    console.log('SendEmail - Preparing to send email with token:', token);
+    
+    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify?token=${token}`;
+    console.log('SendEmail - Generated verification link:', verificationLink);
+    
+    const mailOptions = {
+        from: process.env.EMAIL_FROM,
+        to: email,
+        subject: 'Verify Your Email',
+        html: `
+            <h1>Email Verification</h1>
+            <p>Please click the link below to verify your email address:</p>
+            <a href="${verificationLink}">Verify Email</a>
+            <p>This link will expire in 24 hours.</p>
+        `
+    };
 
-// New function for reset password emails
-export const sendResetPasswordEmail = async (email, resetToken) => {
-  // Get base URL from env or fallback to localhost for development
-  const baseUrl = 'https://testdeploymentuserside.vercel.app';
-  const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: 'Password Reset Request',
-    html: `
-      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #333; text-align: center;">Password Reset Request</h2>
-        <p style="color: #666;">You are receiving this email because you (or someone else) has requested to reset your password for the Belto Admin Portal.</p>
-        <p style="color: #666;">Please click the button below to reset your password:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" 
-             style="background-color: #FFB800; 
-                    color: black; 
-                    padding: 12px 30px; 
-                    text-decoration: none; 
-                    border-radius: 5px;
-                    font-weight: bold;">
-            Reset Password
-          </a>
-        </div>
-        <p style="color: #666; font-size: 12px;">If you did not request this, please ignore this email and your password will remain unchanged.</p>
-        <p style="color: #666; font-size: 12px;">If the button doesn't work, copy and paste this link in your browser:</p>
-        <p style="color: #666; font-size: 12px;">${resetUrl}</p>
-      </div>
-    `
-  };
-
-  await transporter.sendMail(mailOptions);
-};
+    await transporter.sendMail(mailOptions);
+    console.log('SendEmail - Verification email sent successfully');
+}
