@@ -44,7 +44,7 @@ export const sendVerificationEmail = async (email, token) => {
 // New function for reset password emails
 export const sendResetPasswordEmail = async (email, resetToken) => {
   // Get base URL from env or fallback to localhost for development
-  const baseUrl = 'https://belto-admin.vercel.app';
+  const baseUrl = 'https://testdeploymentuserside.vercel.app';
   const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
 
   const mailOptions = {
