@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendVerificationEmail = async (email, token) => {
   // Ensure we use the correct protocol (http for development)
-  const baseUrl = 'https://testdeploymentuserside.vercel.app/';
+  const baseUrl = 'https://testdeploymentuserside.vercel.app';
   const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
 
   const mailOptions = {
